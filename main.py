@@ -5,6 +5,7 @@ from discord import Message
 from discord.ext import commands
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
+from cogs import tags
 
 load_dotenv()
 
@@ -39,18 +40,10 @@ class DeltaBot(commands.Bot):
             return "/"
         return [query["prefix"], ]
 
-    async def on_message(self, message: Message, /) -> None:
-        mention = f'<@{self.user.id}>'
-        await bot.process_commands(message)
-        if message.content == mention:
-            query = await self.database.serverPrefixes.find_one({"_id": message.guild.id})
-            if query is None:
-                await message.reply("My prefix for this server is `?`")
-            await message.reply(f"My prefix for this server is `{query['prefix']}`")
-
 
 bot = DeltaBot()
 bot.help_command = DeltaHelpCommand()
+
 
 @bot.event
 async def on_ready():
@@ -59,13 +52,11 @@ async def on_ready():
         print("Pinged your deployment. You successfully connected to MongoDB!")
     except Exception as e:
         print(e)
+    await bot.load_extension("cogs.tags")
+    await bot.load_extension("cogs.prefix")
 
 
-@bot.command()
-@commands.has_permissions(administrator=True)
-async def setprefix(ctx, prefix: str):
-    await bot.database.serverPrefixes.update_one({"_id": ctx.guild.id}, {"$set": {"prefix": prefix}})
-    await ctx.reply(f"The prefix for this server is updated to `{prefix}")
+
 
 
 bot.run(os.environ.get("BOT_TOKEN"))
