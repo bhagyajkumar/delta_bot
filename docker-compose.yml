@@ -5,3 +5,12 @@ services:
       context: .
     env_file:
       - .env
+    depends_on:
+      - redis
+    environment:
+      - REDIS_URL=redis://redis:6379  # Replace with your actual Redis URL
+
+  redis:
+    image: "redis:latest"
+    ports:
+      - "6379:6379"
