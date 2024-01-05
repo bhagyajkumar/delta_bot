@@ -21,6 +21,7 @@ class Prefix(commands.Cog):
         Set a prefix for the bot for this server
         """
         await self.bot.database.serverPrefixes.update_one({"_id": ctx.guild.id}, {"$set": {"prefix": prefix}})
+        await self.bot.redis.hset('server_prefixes', str(ctx.guild.id), prefix)
         await ctx.reply(f"The prefix for this server is updated to `{prefix}")
 
 
