@@ -1,5 +1,5 @@
 from datetime import datetime
-
+import validators
 import discord
 from discord.ext import commands
 
@@ -20,6 +20,8 @@ class Tags(commands.Cog):
         if result is None:
             return await ctx.send("Please initialize tag with `init` command")
         if "tags" in result.keys():
+            if validators.url(result["tags"][0]["tag_content"]):
+                return await ctx.send(result["tags"][0]["tag_content"])
             embed = discord.Embed(
                 title=result["tags"][0]["tag_name"],
                 description=result["tags"][0]["tag_content"],
