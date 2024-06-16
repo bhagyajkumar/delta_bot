@@ -1,6 +1,5 @@
 from typing import Union, List
 
-import aioredis
 from dotenv import load_dotenv
 import discord
 from discord import Message
@@ -28,30 +27,22 @@ class DeltaHelpCommand(commands.MinimalHelpCommand):
 
 class DeltaBot(commands.Bot):
     def __init__(self, *args, **kwargs):
-        self.redis = None
         self.motor_client = AsyncIOMotorClient(
             os.environ.get("MONGO_URL"))
         self.database = self.motor_client.get_database("deltaBot")
         super().__init__(command_prefix=self.get_prefix, intents=intents, *args, **kwargs)
 
     async def get_prefix(self, message: Message, /) -> Union[List[str], str]:
-        if self.redis is not None:
-            prefix = await self.redis.hget('server_prefixes', str(message.guild.id))
-            if prefix is not None:
-                print("prefix from redis")
-                return prefix.decode()
+
         query = await self.database.serverPrefixes.find_one({"_id": message.guild.id})
         if query is None:
+            default_prefix = "?"
             await self.database.serverPrefixes.insert_one(
-                {"_id": message.guild.id, "prefix": "?"}
+                {"_id": message.guild.id, "prefix": default_prefix}
             )
-            return "/"
-        await self.redis.hset('server_prefixes', str(message.guild.id), query["prefix"])
-        return [query["prefix"], ]
+            return default_prefix
+        return [query["prefix"]]
 
-    async def connect_redis(self):
-        redis_conn = await aioredis.from_url(os.environ.get("REDIS_URL"))
-        self.redis = redis_conn
 
 
 bot = DeltaBot()
@@ -65,12 +56,11 @@ async def on_ready():
         print("Pinged your deployment. You successfully connected to MongoDB!")
     except Exception as e:
         print(e)
-    await bot.connect_redis()
-    print(bot.redis)
     await bot.load_extension("cogs.tags")
     await bot.load_extension("cogs.prefix")
     await bot.load_extension("jishaku")
     await bot.load_extension("cogs.tasks")
+    # await bot.load_extension("cogs.economy")
 
 
 
